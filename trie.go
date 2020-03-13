@@ -1,4 +1,4 @@
-package mioqq
+package mio
 
 import (
 	"strings"
