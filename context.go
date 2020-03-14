@@ -22,6 +22,7 @@ type Context struct {
 	// middleware
 	handlers []HandlerFunc
 	index    int
+	abort    bool
 
 	// engine
 	engine *Engine
@@ -39,11 +40,22 @@ func newContext(w http.ResponseWriter, req *http.Request) *Context {
 
 // Next defines the middleware chains next method
 func (c *Context) Next() {
+	if c.abort {
+		return
+	}
 	c.index++
 	s := len(c.handlers)
-	for ; c.index < s; c.index++ {
+	if c.index != s {
 		c.handlers[c.index](c)
 	}
+	// for ; c.index < s; c.index++ {
+	// 	c.handlers[c.index](c)
+	// }
+}
+
+// Abort 立刻停止中间件传递
+func (c *Context) Abort() {
+	c.abort = true
 }
 
 // PostForm return the key value of post form data
@@ -109,4 +121,11 @@ func (c *Context) HTML(code int, name string, data interface{}) {
 	if err := c.engine.htmlTemplates.ExecuteTemplate(c.Writer, name, data); err != nil {
 		c.Fail(500, err.Error())
 	}
+}
+
+// ReadJSON 解析JSON数据
+func (c *Context) ReadJSON(model interface{}) error {
+	decoder := json.NewDecoder(c.Req.Body)
+	decoder.UseNumber()
+	return decoder.Decode(model)
 }
